@@ -179,6 +179,8 @@ Tabelas: `users`, `people`, `events`, `event_participants`, `expenses`, `financi
 
 ## Docker e produção
 
+Para publicar no **alwaysdata Free**, consulte [o guia específico](docs/ALWAYSDATA.md). O comando `scripts/package-alwaysdata.ps1` gera o build, o layout público/privado e um backup do banco atual em `.tools/alwaysdata/`, preservando o administrador e os lançamentos existentes. O pacote contém dados privados e fica fora do Git.
+
 Os arquivos Docker estão preparados; a execução Docker não foi validada neste ambiente (Docker não está instalado). Use:
 
 ```bash
