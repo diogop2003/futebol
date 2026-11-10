@@ -1,0 +1,9 @@
+.env
+api/.env
+api/storage/*
+!api/storage/.gitkeep
+.tools/
+test-results/
+*.log
+legacy/reviewed*.json
+legacy/reconciliation*.json

@@ -1,0 +1,75 @@
+<div class="page-heading"><div><p class="eyebrow">Gerenciamento</p><h1>{{ title }}</h1><p>Cadastre eventos, acompanhe pagamentos e registre despesas.</p></div><button (click)="newRecord()" [disabled]="saving || importing">+ Novo registro</button></div>
+<nav class="tabs" aria-label="Módulos de gerenciamento">
+  <a routerLink="/gerenciamento/monthly" routerLinkActive="active" queryParamsHandling="preserve">Mensalidades</a>
+  <a routerLink="/gerenciamento/daily" routerLinkActive="active" queryParamsHandling="preserve">Diárias</a>
+  <a routerLink="/gerenciamento/barbecue" routerLinkActive="active" queryParamsHandling="preserve">Churrascos</a>
+  <a routerLink="/gerenciamento/expenses" routerLinkActive="active" queryParamsHandling="preserve">Gastos</a>
+</nav>
+@if (!event && !expense) { <app-period-filter [period]="period" (periodChange)="changePeriod($event)" /> }
+@if (success) { <p class="notice success" role="status">{{ success }}</p> }
+@if (error) { <p class="notice error" role="alert">{{ error }}</p> }
+
+@if (event; as draft) {
+  <section class="card editor"><h2>{{ draft.id ? 'Editar' : 'Cadastrar' }} {{ title.toLowerCase() }}</h2>
+    <p>As alterações serão gravadas somente ao clicar em Salvar.</p>
+    <form #eventForm="ngForm" (ngSubmit)="save()">
+    <fieldset [disabled]="saving || importing"><div class="form-grid">
+      @if (module === 'monthly') {
+        <label>Mês de referência<select name="referenceMonth" [(ngModel)]="formMonth" required>@for (name of months; track $index) { <option [ngValue]="$index+1">{{ name }}</option> }</select></label>
+        <label>Ano de referência<input name="referenceYear" type="number" [(ngModel)]="formYear" required min="2000" max="2100" step="1" /></label>
+      } @else { <label>Data do evento<input name="date" type="date" [(ngModel)]="draft.date" min="2000-01-01" max="2100-12-31" required /></label> }
+      <label>Valor de referência (R$)<input name="amount" type="text" inputmode="decimal" [(ngModel)]="draft.amount" pattern="[0-9]{1,9}([.,][0-9]{1,2})?" required placeholder="0,00" /></label>
+      <label>Título / identificação<input name="title" [(ngModel)]="draft.title" maxlength="160" placeholder="Opcional; diferencia eventos na mesma data" /></label>
+    </div>
+    @if (module === 'monthly') {
+      <div class="previous-month-import" [attr.aria-busy]="importing">
+        <button type="button" class="secondary" (click)="importPreviousMonth()">{{ importing ? 'Importando lista…' : 'Importar lista do mês anterior' }}</button>
+        <p class="muted">Usa o mês e ano de referência acima. Copia os participantes e os valores, com todos os pagamentos como Não pago.</p>
+        @if (importNotice) { <p class="notice" role="status">{{ importNotice }}</p> }
+      </div>
+    }
+    <button type="button" class="secondary" (click)="applyAmount()">Aplicar valor a todos</button>
+    <div class="participant-picker"><h3>Adicionar participantes</h3><p>Escolha uma pessoa existente ou informe um novo nome. Todos os participantes podem entrar no churrasco.</p>
+      <label>Buscar pessoa cadastrada<input name="search" [(ngModel)]="search" (ngModelChange)="findPeople()" placeholder="Digite o nome" autocomplete="off" /></label>
+      @if (people.length && search) { <ul class="search-results">@for (person of people; track person.id) { <li><button type="button" class="secondary" (click)="addPerson(person)">+ {{ person.name }}</button></li> }</ul> }
+      <div class="inline-form"><label>Nova pessoa<input name="newName" [(ngModel)]="newName" maxlength="160" placeholder="Nome completo ou apelido identificável" /></label><button type="button" class="secondary" (click)="addPerson()" [disabled]="!newName.trim()">Adicionar</button></div>
+    </div>
+    <ul class="participant-editor">@for (person of draft.participants; track $index; let i = $index) {
+      <li><strong>{{ person.name }}</strong><label>Valor (R$)<input [name]="'personAmount'+i" type="text" inputmode="decimal" [(ngModel)]="person.amount" pattern="[0-9]{1,9}([.,][0-9]{1,2})?" required /></label>
+        <button type="button" class="payment-toggle" [class.paid]="person.paid" [class.unpaid]="!person.paid" [attr.aria-pressed]="person.paid" (click)="togglePaid(i)">{{ person.paid ? '✓ Pago' : 'Não pago' }}</button>
+        @if (person.paid) { <label>Data do pagamento<input [name]="'paidAt'+i" type="date" [(ngModel)]="person.paidAt" min="2000-01-01" max="2100-12-31" /><small>Vazio: mantém a data conhecida ou usa hoje em um novo pagamento.</small></label> }
+        <button type="button" class="danger-text" (click)="removePerson(i)" [attr.aria-label]="'Remover '+person.name">Remover</button>
+      </li>
+    } @empty { <li class="notice">Nenhum participante adicionado.</li> }</ul>
+    <dl class="mini-stats"><div><dt>Participantes</dt><dd>{{ draft.participants.length }}</dd></div><div><dt>Previsto</dt><dd>{{ preview() | currency:'BRL' }}</dd></div><div><dt>Recebido</dt><dd class="positive">{{ preview(true) | currency:'BRL' }}</dd></div><div><dt>Pendente</dt><dd class="pending">{{ preview(false) | currency:'BRL' }}</dd></div></dl>
+    <p class="muted">Prévia das alterações ainda não salvas. O servidor confirma os totais ao salvar.</p>
+    <div class="form-actions"><button type="submit" [disabled]="eventForm.invalid || !draft.participants.length">{{ saving ? 'Salvando…' : 'Salvar' }}</button><button type="button" class="secondary" (click)="cancel()">Cancelar</button></div>
+    </fieldset></form>
+  </section>
+} @else { @if (expense; as draft) {
+  <section class="card editor"><h2>{{ draft.id ? 'Editar gasto' : 'Cadastrar gasto' }}</h2>
+    <form #expenseForm="ngForm" (ngSubmit)="save()"><fieldset [disabled]="saving"><div class="form-grid">
+      <label>Data do gasto<input name="date" type="date" [(ngModel)]="draft.date" min="2000-01-01" max="2100-12-31" required /></label>
+      <label>Mês de referência<select name="month" [(ngModel)]="draft.month" required>@for (name of months; track $index) { <option [ngValue]="$index+1">{{ name }}</option> }</select></label>
+      <label>Ano de referência<input name="year" type="number" [(ngModel)]="draft.year" required min="2000" max="2100" step="1" /></label>
+      <label>Valor (R$)<input name="amount" type="text" inputmode="decimal" [(ngModel)]="draft.amount" pattern="[0-9]{1,9}([.,][0-9]{1,2})?" required placeholder="0,00" /></label>
+      <label>Tipo de gasto<select name="category" [(ngModel)]="draft.category" required>@for (category of categories | keyvalue; track category.key) { <option [ngValue]="category.key">{{ category.value }}</option> }</select></label>
+      <label>Descrição (opcional)<textarea name="description" [(ngModel)]="draft.description" maxlength="1000" rows="3"></textarea></label>
+    </div><div class="form-actions"><button type="submit" [disabled]="expenseForm.invalid">{{ saving ? 'Salvando…' : 'Salvar' }}</button><button type="button" class="secondary" (click)="cancel()">Cancelar</button></div></fieldset></form>
+  </section>
+} @else {
+  <div aria-live="polite" [attr.aria-busy]="loading">
+  @if (loading) { <p class="notice">Carregando registros…</p> }
+  @else if (module === 'expenses') {
+    <div class="stats-grid">@for (category of categories | keyvalue; track category.key) { <article class="stat"><h2>{{ category.value }}</h2><strong>{{ expenseTotal(category.key) | currency:'BRL' }}</strong></article> }</div>
+    <p class="total-line">Total de despesas: <strong>{{ expenseTotal() | currency:'BRL' }}</strong></p>
+    <div class="record-list">@for (row of expenses; track row.id) {
+      <article class="card record"><div><h2>{{ categories[row.category] }}</h2><p>{{ row.date ? (row.date | date:'dd/MM/yyyy':'UTC') : 'Data exata não registrada' }} · {{ row.amount | currency:'BRL' }}</p><p>{{ row.description }}</p></div><div class="actions"><button class="secondary" (click)="editExpense(row)">Editar</button><button class="danger-text" [disabled]="saving" (click)="remove(row)">Excluir</button></div></article>
+    } @empty { <div class="empty"><h2>Nenhum gasto neste período</h2><p>Use Novo registro para adicionar uma despesa.</p></div> }</div>
+  } @else {
+    <div class="record-list">@for (row of events; track row.id) {
+      <article class="card record"><div><h2>{{ row.title || title }}</h2><p>{{ row.date | date:'dd/MM/yyyy':'UTC' }} · {{ row.totals.count }} participantes</p><p>Recebido: <strong class="positive">{{ row.totals.received | currency:'BRL' }}</strong> · Pendente: {{ row.totals.pending | currency:'BRL' }}</p></div><div class="actions"><button class="secondary" (click)="editEvent(row)">Editar</button><button class="danger-text" [disabled]="saving" (click)="remove(row)">Excluir</button></div></article>
+    } @empty { <div class="empty"><h2>Nenhum registro neste período</h2><p>Use Novo registro para começar.</p></div> }</div>
+  }</div>
+  @if (error) { <button class="secondary" (click)="reload()">Tentar novamente</button> }
+} }

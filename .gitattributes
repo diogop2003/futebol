@@ -1,0 +1,4 @@
+* text=auto
+legacy/original/*.html -text
+*.php text eol=lf
+*.sh text eol=lf

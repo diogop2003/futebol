@@ -1,65 +1,65 @@
-<header class="flex items-center justify-center gap-5 border-b-2 bg-white py-4">
-    <p class="rounded-lg bg-gray-700 p-3 text-white">Saldo</p>
-    <a href="diaristas">
-        <p class="rounded-lg bg-white p-3 text-black hover:bg-gray-700 hover:text-white">Diaristas</p>
-    </a>
-    <a href="mensalistas">
-        <p class="rounded-lg bg-white p-3 text-black hover:bg-gray-700 hover:text-white">Mensalistas</p>
-    </a>
-    <a href="churrasco">
-        <p class="rounded-lg bg-white p-3 text-black hover:bg-gray-700 hover:text-white">Churrasco</p>
-    </a>
-</header>
-
-<p class="bg-gray-100 text-3xl font-bold text-gray-700 flex justify-center p-14">Saldo</p>
-
-<section class="flex mt-0 min-h-screen items-start justify-center bg-gray-100">
-    <div class="rounded-xl bg-white p-24 shadow-lg">
-        <table class="w-full table-auto mx-4">
-            <thead class="">
-                <tr class="border-b">
-                    <th class="py-2 text-left text-xl text-gray-600">Descrição</th>
-                    <th class="py-2 text-left text-xl text-gray-600">Valor</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr class="border-b">
-                    <td class="w-auto py-4 text-md text-gray-700">Saldo mês anterior</td>
-                    <td class="w-auto py-4 text-md text-green-500">1.985,48</td>
-                </tr>
-                <tr class="border-b gap-5">
-                    <td class="w-auto py-4 text-md text-gray-700">Pagantes mês</td>
-                    <td class="w-auto py-4 text-md text-green-500">2.300,00</td>
-                </tr>
-                <tr class="border-b gap-5">
-                    <td class="w-auto py-4 text-md text-gray-700">Mensalidade do campo</td>
-                    <td class="w-auto py-4 text-md text-red-500">-1.600,00</td>
-                </tr>
-                <tr class="border-b gap-5">
-                    <td class="w-auto py-4 text-md text-gray-700">Goleiros mês</td>
-                    <td class="w-auto py-4 text-md text-red-500">-820,00</td>
-                </tr>
-                <tr class="border-b gap-5">
-                    <td class="w-auto py-4 text-md text-gray-700">Diaristas mês</td>
-                    <td class="w-auto py-4 text-md text-green-500">750,00</td>
-                </tr>
-                <tr class="border-b gap-5">
-                    <td class="w-auto py-4 text-md text-gray-700">Gastos adicionais mês</td>
-                    <td class="w-auto py-4 text-md text-red-500">-140,00</td>
-                </tr> 
-                <tr class="border-b gap-5">
-                    <td class="w-auto py-4 text-md text-gray-700">Gastos churrasco mês</td>
-                    <td class="w-auto py-4 text-md text-red-500">-889,83</td>
-                </tr>
-                <tr class="border-b gap-5">
-                    <td class="w-auto py-4 text-md text-gray-700">Pagantes churrasco mês</td>
-                    <td class="w-auto py-4 text-md text-green-500">180,00</td>
-                </tr>
-                <tr class="border-b gap-5">
-                    <td class="w-auto py-4 text-md text-gray-700">SALDO TOTAL</td>
-                    <td class="w-auto py-4 text-md text-green-500">1.765,65</td>
-                </tr>
-            </tbody>
-        </table>
+<div class="page-heading">
+    <div>
+        <p class="eyebrow">Consulta pública</p>
+        <h1>Saldo financeiro</h1>
+        <p>Acompanhe as receitas, os pagamentos pendentes e as despesas do grupo.</p>
+    </div><span class="public-label">Acesso público</span>
+</div>
+<app-period-filter [period]="period" (periodChange)="changePeriod($event)" />
+<div aria-live="polite" [attr.aria-busy]="loading">
+    @if (loading) { <p class="notice">Calculando indicadores…</p> }
+    @else if (error) { <div class="notice error" role="alert">{{ error }} <button class="secondary"
+            (click)="refresh()">Tentar novamente</button></div> }
+    @else { @if (summary; as s) {
+    <div class="stats-grid">
+        <article class="stat">
+            <h2>Receita prevista</h2><strong>{{ s.expected | currency:'BRL' }}</strong>
+            <p>Todas as cobranças do período</p>
+        </article>
+        <article class="stat">
+            <h2>Receita recebida</h2><strong class="positive">{{ s.received | currency:'BRL' }}</strong>
+            <p>Somente pagamentos realizados</p>
+        </article>
+        <article class="stat">
+            <h2>Receita pendente</h2><strong class="pending">{{ s.pending | currency:'BRL' }}</strong>
+            <p>Pagamentos ainda não realizados</p>
+        </article>
+        <article class="stat">
+            <h2>Despesas</h2><strong class="negative">{{ s.expenses | currency:'BRL' }}</strong>
+            <p>Gastos no mês de referência</p>
+        </article>
     </div>
-</section>
+    <div class="balance-grid">
+        <article class="balance-card">
+            <h2>Saldo do período</h2><strong>{{ s.balance | currency:'BRL' }}</strong>
+            <p>Recebido menos despesas</p>
+        </article>
+        <article class="balance-card accumulated">
+            <h2>Saldo acumulado</h2>@if (s.accumulatedBalance !== null) { <strong>{{ s.accumulatedBalance |
+                currency:'BRL' }}</strong>
+            <p>Saldo anterior: {{ s.previousBalance | currency:'BRL' }}</p> } @else { <p>{{ s.opening ? 'O
+                acompanhamento do saldo acumulado começa em outubro/2026.' : 'Saldo inicial ainda não configurado pelo
+                administrador.' }}</p> }
+        </article>
+    </div>
+    @if (s.expected === '0.00' && s.expenses === '0.00') { <p class="notice">Não há lançamentos neste período. O saldo
+        acumulado, quando disponível, mantém o resultado dos meses anteriores.</p> }
+    <div class="event-grid">
+        <section class="card">
+            <h2>Receitas por origem</h2>
+            <dl class="detail-list">@for (item of s.revenues | keyvalue; track item.key) { <div>
+                    <dt>{{ eventLabels[item.key] }}<small>Previsto: {{ item.value.expected | currency:'BRL' }} ·
+                            Pendente: {{ item.value.pending | currency:'BRL' }}</small></dt>
+                    <dd class="positive">{{ item.value.received | currency:'BRL' }}</dd>
+                </div> }</dl>
+        </section>
+        <section class="card">
+            <h2>Despesas por categoria</h2>
+            <dl class="detail-list">@for (item of s.categories | keyvalue; track item.key) { <div>
+                    <dt>{{ categoryLabels[item.key] }}</dt>
+                    <dd>{{ item.value | currency:'BRL' }}</dd>
+                </div> }</dl>
+        </section>
+    </div>
+    } }
+</div>

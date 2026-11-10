@@ -1,0 +1,10 @@
+.git
+.tools
+.env
+**/node_modules
+**/dist
+**/.angular
+**/coverage
+**/.env
+api/storage
+test-results
